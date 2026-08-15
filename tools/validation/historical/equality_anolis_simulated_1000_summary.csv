@@ -1,0 +1,2 @@
+"baseline","candidate","self_comparison","population","expected_population_cases","max_ntips","excluded_cases","selected_cases","passed","failed","pst_discrepancies","ss_discrepancies","tt_failures","status"
+"v34","v35",FALSE,"anolis-simulated",1000,249,0,1000,1000,0,0,0,0,"pass"

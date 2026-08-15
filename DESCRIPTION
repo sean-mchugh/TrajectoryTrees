@@ -1,0 +1,41 @@
+Package: TrajectoryTrees
+Type: Package
+Title: Construct and Summarize Evolutionary Trajectory Trees
+Version: 0.2.0
+Authors@R: person(
+    given = "Sean",
+    family = "McHugh",
+    email = "sean.mchugh4@gmail.com",
+    role = c("aut", "cre")
+  )
+Description: Constructs phylogenetic trajectory, scenario, and transition
+    representations from stochastic character maps. Provides tools for
+    selecting output surfaces, processing ensembles in resumable batches,
+    summarizing posterior distributions, and plotting trajectory objects.
+License: file LICENSE
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+Imports:
+    ape,
+    digest,
+    ggplot2,
+    graphics,
+    grDevices,
+    Rcpp,
+    stats,
+    utils
+LinkingTo:
+    Rcpp
+Suggests:
+    coda,
+    ggh4x,
+    knitr,
+    patchwork,
+    phytools,
+    rmarkdown,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+SystemRequirements: C++17

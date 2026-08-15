@@ -1,0 +1,114 @@
+---
+title: "Constructing and Summarizing Trajectory Trees"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Constructing and Summarizing Trajectory Trees}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(TrajectoryTrees)
+```
+
+TrajectoryTrees converts a stochastic character map into a stable
+`trajectory_tree`. The package keeps the implementation private: user code uses
+the same names even when the internal engine changes.
+
+## One stochastic map
+
+The package includes a small deterministic map for examples and tests.
+
+```{r construct}
+simmap <- readRDS(system.file(
+  "extdata", "generated_000001.rds",
+  package = "TrajectoryTrees"
+))
+
+trajectory <- make_trajectory_objects(simmap)
+trajectory
+```
+
+The returned object contains the input mapped phylogeny, scenario and transition
+trees, summary statistics, through-time matrices, scenario coordinates, and
+the resolved root policy.
+
+```{r inspect}
+names(trajectory)
+names(trajectory_summary(trajectory))
+names(trajectory_through_time(trajectory))
+```
+
+## Lists and nested lists
+
+Names and input nesting are retained. This makes posterior samples and
+empirical/simulation groupings use the same constructor.
+
+```{r lists}
+posterior <- make_trajectory_objects(
+  list(first = simmap, second = simmap),
+  include_tt = FALSE
+)
+
+groups <- make_trajectory_objects(
+  list(
+    empirical = list(first = simmap),
+    simulated = list(first = simmap)
+  ),
+  include_tt = FALSE
+)
+
+names(posterior)
+names(groups)
+```
+
+## Keeping only needed fields
+
+Large posterior jobs often need fewer surfaces than an interactive inspection.
+
+```{r select}
+compact <- select_trajectory_fields(
+  trajectory,
+  include = c("phylo", "scenario", "trans", "ss"),
+  ss_include = c("tree_wide", "by_state", "by_path")
+)
+
+names(compact)
+names(compact$ss)
+```
+
+## Through-time plots
+
+```{r plot-tt, fig.width=7, fig.height=4}
+plot_trajectory_through_time(
+  trajectory,
+  metric = "ltt",
+  component = "state",
+  title = "Lineages through time by state"
+)
+```
+
+Tree plots use `phytools::plotSimmap()` when phytools is installed and otherwise
+fall back to `ape::plot.phylo()`.
+
+```{r plot-tree, fig.width=7, fig.height=5}
+plot_trajectory_tree(trajectory, tree = "phylo", fsize = 0.7)
+```
+
+## Resumable batches
+
+For large ensembles, construct directly into batch files:
+
+```{r batches, eval=FALSE}
+manifest <- make_trajectory_batches(
+  simmaps,
+  output_dir = "trajectory_batches",
+  batch_size = "auto"
+)
+
+trajectories <- load_trajectory_batches(manifest)
+```
+
+The manifest records input identity, shape, names, construction controls, and
+completed files. `resume = TRUE` continues only a compatible incomplete run.

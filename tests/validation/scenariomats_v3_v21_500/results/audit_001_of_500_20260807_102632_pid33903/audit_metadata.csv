@@ -1,0 +1,2 @@
+"status","histories","corpus_size","package_version","candidate","oracle","maximum_transition_counts","async_metrics","return_modes","numeric_tolerance","run_started_from"
+"pass",1,500,"0.2.0","TrajectoryTrees::trajectory_similarity","tests/testthat/reference/ScenarioMatsV2_1.R","0,1,2,3","bhattacharyya,minimum","complete,matrices_and_summaries",1e-10,"/Users/seanmchugh/Projects/TrajectoryTrees"

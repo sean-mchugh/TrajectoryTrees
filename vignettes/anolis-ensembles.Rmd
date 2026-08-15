@@ -1,0 +1,100 @@
+---
+title: "Empirical and Simulated Anolis Ensembles"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Empirical and Simulated Anolis Ensembles}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(TrajectoryTrees)
+```
+
+The source package includes the release Anolis inputs: 500 empirical stochastic
+maps and 1,000 simulated maps. `load_anolis_trees()` gives these collections
+stable names and supports indexed subsets.
+
+```{r load}
+empirical_maps <- load_anolis_trees("empirical", limit = 2)
+simulated_maps <- load_anolis_trees("simulated", limit = 2)
+
+length(empirical_maps)
+length(simulated_maps)
+```
+
+## Constructing both groups
+
+Nested input produces a nested result with the same names.
+
+```{r construct}
+trajectories <- make_trajectory_objects(
+  list(
+    empirical = empirical_maps,
+    simulated = simulated_maps
+  )
+)
+
+names(trajectories)
+```
+
+For the complete 1,500-map analysis, use batches:
+
+```{r full-batches, eval=FALSE}
+empirical_manifest <- make_trajectory_batches(
+  load_anolis_trees("empirical"),
+  output_dir = "anolis_batches/empirical"
+)
+
+simulated_manifest <- make_trajectory_batches(
+  load_anolis_trees("simulated"),
+  output_dir = "anolis_batches/simulated"
+)
+```
+
+## Posterior distributions
+
+Each trajectory list becomes one posterior distribution. The C++ reducer is
+exact and uses bounded working blocks.
+
+```{r distributions}
+distributions <- make_trajectory_distributions(
+  trajectories,
+  include = c("P", "T", "SS", "TT"),
+  backend = "cpp"
+)
+
+distributions$empirical
+distributions$simulated
+```
+
+The distribution object keeps posterior means, medians, lower and upper
+quantiles, and the number of observed values for each numeric cell.
+
+```{r plot-distribution, fig.width=7, fig.height=4}
+plot_trajectory_distribution(
+  distributions$empirical,
+  surface = "SS",
+  title = "Empirical Anolis posterior summary"
+)
+```
+
+## Comparing empirical and simulated summaries
+
+`compare_trajectory_distributions()` is an exact path-by-path diagnostic when
+the two distributions have compatible numeric surfaces.
+
+```{r compare}
+comparison <- compare_trajectory_distributions(
+  distributions$empirical,
+  distributions$simulated,
+  surfaces = c("SS", "TT")
+)
+
+head(comparison)
+```
+
+The comparison reports structure mismatches as well as maximum absolute
+numeric differences, so results can be filtered to the biological surfaces of
+interest without relying on implementation-specific object names.

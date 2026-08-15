@@ -1,0 +1,3 @@
+scope,case_id,reference_relpath,tip_height_min,tip_height_max,ultrametric_spread
+PST_SS,adversarial_000197,PST_SS/adversarial_000197.rds,1,2,1
+PST_TT_SS,prunedgenerated_000025,PST_TT_SS/prunedgenerated_000025.rds,1,1.5,0.5
