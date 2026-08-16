@@ -32,12 +32,15 @@ For every selected simmap, the runner:
 4. compares every candidate matrix and reported summary against V2.1 for depths
    0-3, both `bhattacharyya` and `minimum`, and both `complete` and
    `matrices_and_summaries` return modes at tolerance `1e-10`;
-5. checks matrix dimensions, labels, finiteness, non-negativity, symmetry,
+5. compares `summaries_only` against the matrix-derived summary surface for
+   every history and metric, while checking that no pairwise matrices or
+   pairwise availability matrices are returned;
+6. checks matrix dimensions, labels, finiteness, non-negativity, symmetry,
    zero diagonals, and pairwise closure;
-6. independently reconstructs each summary's totals, tree-wide proportions,
+7. independently reconstructs each summary's totals, tree-wide proportions,
    means, total across matrices, and—when non-ultrametric weighting is
    active—available-similarity total from the corresponding returned matrices;
-7. checks tree-wide closure, correct ultrametric/non-ultrametric weighting, and
+8. checks tree-wide closure, correct ultrametric/non-ultrametric weighting, and
    complete-versus-compact consistency.
 
 The package-only `summaries$similarity_vectors` extension is tested elsewhere

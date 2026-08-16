@@ -248,8 +248,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // scenario_mats_v3_calculate_cpp
-Rcpp::List scenario_mats_v3_calculate_cpp(Rcpp::List trajectory_obj, Rcpp::IntegerVector maximum_transition_counts, std::string async_metric, bool record_complete_output, double time_tolerance);
-RcppExport SEXP _TrajectoryTrees_scenario_mats_v3_calculate_cpp(SEXP trajectory_objSEXP, SEXP maximum_transition_countsSEXP, SEXP async_metricSEXP, SEXP record_complete_outputSEXP, SEXP time_toleranceSEXP) {
+Rcpp::List scenario_mats_v3_calculate_cpp(Rcpp::List trajectory_obj, Rcpp::IntegerVector maximum_transition_counts, std::string async_metric, bool record_complete_output, bool record_matrix_output, double time_tolerance);
+RcppExport SEXP _TrajectoryTrees_scenario_mats_v3_calculate_cpp(SEXP trajectory_objSEXP, SEXP maximum_transition_countsSEXP, SEXP async_metricSEXP, SEXP record_complete_outputSEXP, SEXP record_matrix_outputSEXP, SEXP time_toleranceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -257,8 +257,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type maximum_transition_counts(maximum_transition_countsSEXP);
     Rcpp::traits::input_parameter< std::string >::type async_metric(async_metricSEXP);
     Rcpp::traits::input_parameter< bool >::type record_complete_output(record_complete_outputSEXP);
+    Rcpp::traits::input_parameter< bool >::type record_matrix_output(record_matrix_outputSEXP);
     Rcpp::traits::input_parameter< double >::type time_tolerance(time_toleranceSEXP);
-    rcpp_result_gen = Rcpp::wrap(scenario_mats_v3_calculate_cpp(trajectory_obj, maximum_transition_counts, async_metric, record_complete_output, time_tolerance));
+    rcpp_result_gen = Rcpp::wrap(scenario_mats_v3_calculate_cpp(trajectory_obj, maximum_transition_counts, async_metric, record_complete_output, record_matrix_output, time_tolerance));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -281,7 +282,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TrajectoryTrees_pst_v35_cpp_state_only_tree", (DL_FUNC) &_TrajectoryTrees_pst_v35_cpp_state_only_tree, 5},
     {"_TrajectoryTrees_pst_v35_cpp_pathify_state_tree", (DL_FUNC) &_TrajectoryTrees_pst_v35_cpp_pathify_state_tree, 3},
     {"_TrajectoryTrees_pst_v35_cpp_transition_size_maps", (DL_FUNC) &_TrajectoryTrees_pst_v35_cpp_transition_size_maps, 8},
-    {"_TrajectoryTrees_scenario_mats_v3_calculate_cpp", (DL_FUNC) &_TrajectoryTrees_scenario_mats_v3_calculate_cpp, 5},
+    {"_TrajectoryTrees_scenario_mats_v3_calculate_cpp", (DL_FUNC) &_TrajectoryTrees_scenario_mats_v3_calculate_cpp, 6},
     {NULL, NULL, 0}
 };
 

@@ -514,6 +514,43 @@ check_result <- function(result, trajectory, case_id, metric, return_mode) {
   }
 }
 
+summary_only_surface <- function(result) {
+  summaries <- result$summaries
+  summaries$async_convergence_by_transition_depth <- NULL
+  summaries$weighting$synchronous_available_similarity_by_pair <- NULL
+  summaries$weighting$asynchronous_available_similarity_by_pair <- NULL
+  summaries
+}
+
+check_summary_only_result <- function(result, case_id, metric) {
+  add_check(
+    case_id, metric, "summaries_only", "no_matrix_output",
+    identical(names(result), "summaries")
+  )
+  add_check(
+    case_id, metric, "summaries_only", "no_pairwise_availability_output",
+    !any(c(
+      "synchronous_available_similarity_by_pair",
+      "asynchronous_available_similarity_by_pair"
+    ) %in% names(result$summaries$weighting))
+  )
+  for (summary_name in c("sync", names(result$summaries$async))) {
+    summary <- if (identical(summary_name, "sync")) {
+      result$summaries$sync
+    } else {
+      result$summaries$async[[summary_name]]
+    }
+    proportions <- summary$tree_wide_proportions
+    add_check(
+      case_id, metric, "summaries_only",
+      paste0("summary_closure_", summary_name),
+      is.numeric(proportions) &&
+        all(is.finite(proportions)) &&
+        abs(sum(proportions) - 1) <= numeric_tolerance
+    )
+  }
+}
+
 load_saved_tree_cases <- function() {
   if (!file.exists(saved_tree_manifest)) {
     stop("Missing promoted 500-case manifest: ", saved_tree_manifest, call. = FALSE)
@@ -613,6 +650,20 @@ for (case_index in seq_along(cases)) {
         return_mode
       )
     }
+    summary_only <- TrajectoryTrees::trajectory_similarity(
+      trajectory,
+      maximum_transition_counts = maximum_transition_counts,
+      async_metric = metric,
+      return_mode = "summaries_only"
+    )
+    check_summary_only_result(summary_only, case$case_id, metric)
+    compare_exact_structure(
+      summary_only_surface(results$matrices_and_summaries),
+      summary_only_surface(summary_only),
+      case$case_id,
+      metric,
+      "summaries_only_vs_matrices_and_summaries"
+    )
     compare_exact_structure(
       results$complete[c("matrices", "summaries")],
       results$matrices_and_summaries,
@@ -682,7 +733,7 @@ utils::write.csv(
     oracle = "tests/testthat/reference/ScenarioMatsV2_1.R",
     maximum_transition_counts = paste(maximum_transition_counts, collapse = ","),
     async_metrics = paste(metrics, collapse = ","),
-    return_modes = paste(return_modes, collapse = ","),
+    return_modes = paste(c(return_modes, "summaries_only"), collapse = ","),
     numeric_tolerance = numeric_tolerance,
     run_started_from = package_root,
     stringsAsFactors = FALSE

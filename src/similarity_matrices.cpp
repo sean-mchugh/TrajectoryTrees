@@ -2757,17 +2757,20 @@ Rcpp::NumericVector tip_history_times_to_r(
 
 CompactMatrixStorage initialize_compact_matrix_storage(
     const PreparedScenarioData& data,
-    const ComponentDefinitions& definitions) {
+    const ComponentDefinitions& definitions,
+    bool record_matrix_output) {
   CompactMatrixStorage storage;
   storage.synchronous_totals.assign(
     definitions.synchronous_component_names.size(), 0.0
   );
-  for (std::size_t component = 0;
-       component < definitions.synchronous_component_names.size();
-       ++component) {
-    Rcpp::NumericMatrix matrix(data.tip_count, data.tip_count);
-    set_matrix_names(matrix, data.tip_label_source, data.tip_label_source);
-    storage.synchronous.push_back(matrix);
+  if (record_matrix_output) {
+    for (std::size_t component = 0;
+         component < definitions.synchronous_component_names.size();
+         ++component) {
+      Rcpp::NumericMatrix matrix(data.tip_count, data.tip_count);
+      set_matrix_names(matrix, data.tip_label_source, data.tip_label_source);
+      storage.synchronous.push_back(matrix);
+    }
   }
   storage.asynchronous.resize(data.maximum_transition_counts.size());
   storage.asynchronous_totals.resize(data.maximum_transition_counts.size());
@@ -2777,28 +2780,32 @@ CompactMatrixStorage initialize_compact_matrix_storage(
     storage.asynchronous_totals[depth].assign(
       definitions.asynchronous_component_names[depth].size(), 0.0
     );
-    for (std::size_t component = 0;
-         component < definitions.asynchronous_component_names[depth].size();
-         ++component) {
-      Rcpp::NumericMatrix matrix(data.tip_count, data.tip_count);
-      set_matrix_names(matrix, data.tip_label_source, data.tip_label_source);
-      storage.asynchronous[depth].push_back(matrix);
+    if (record_matrix_output) {
+      for (std::size_t component = 0;
+           component < definitions.asynchronous_component_names[depth].size();
+           ++component) {
+        Rcpp::NumericMatrix matrix(data.tip_count, data.tip_count);
+        set_matrix_names(matrix, data.tip_label_source, data.tip_label_source);
+        storage.asynchronous[depth].push_back(matrix);
+      }
     }
   }
-  storage.synchronous_available =
-    Rcpp::NumericMatrix(data.tip_count, data.tip_count);
-  storage.asynchronous_available =
-    Rcpp::NumericMatrix(data.tip_count, data.tip_count);
-  set_matrix_names(
-    storage.synchronous_available,
-    data.tip_label_source,
-    data.tip_label_source
-  );
-  set_matrix_names(
-    storage.asynchronous_available,
-    data.tip_label_source,
-    data.tip_label_source
-  );
+  if (record_matrix_output) {
+    storage.synchronous_available =
+      Rcpp::NumericMatrix(data.tip_count, data.tip_count);
+    storage.asynchronous_available =
+      Rcpp::NumericMatrix(data.tip_count, data.tip_count);
+    set_matrix_names(
+      storage.synchronous_available,
+      data.tip_label_source,
+      data.tip_label_source
+    );
+    set_matrix_names(
+      storage.asynchronous_available,
+      data.tip_label_source,
+      data.tip_label_source
+    );
+  }
   storage.synchronous_available_total = 0.0;
   storage.asynchronous_available_total = 0.0;
   return storage;
@@ -2813,8 +2820,10 @@ void write_compact_pair(
     double weight) {
   for (std::size_t component = 0; component < values.size(); ++component) {
     if (values[component] == 0.0) continue;
-    matrices[component](first_tip, second_tip) = values[component];
-    matrices[component](second_tip, first_tip) = values[component];
+    if (!matrices.empty()) {
+      matrices[component](first_tip, second_tip) = values[component];
+      matrices[component](second_tip, first_tip) = values[component];
+    }
     totals[component] += values[component] * weight;
   }
 }
@@ -2823,9 +2832,10 @@ CompactMatrixStorage calculate_compact_matrix_storage(
     const PreparedScenarioData& data,
     const ComponentDefinitions& definitions,
     const CompactScenarioData& compact,
-    const std::string& metric) {
+    const std::string& metric,
+    bool record_matrix_output) {
   CompactMatrixStorage storage =
-    initialize_compact_matrix_storage(data, definitions);
+    initialize_compact_matrix_storage(data, definitions, record_matrix_output);
   std::vector<double> synchronous(
     definitions.synchronous_component_names.size()
   );
@@ -2928,10 +2938,12 @@ CompactMatrixStorage calculate_compact_matrix_storage(
         );
       }
 
-      storage.synchronous_available(first_tip, second_tip) = comparable;
-      storage.synchronous_available(second_tip, first_tip) = comparable;
-      storage.asynchronous_available(first_tip, second_tip) = available;
-      storage.asynchronous_available(second_tip, first_tip) = available;
+      if (record_matrix_output) {
+        storage.synchronous_available(first_tip, second_tip) = comparable;
+        storage.synchronous_available(second_tip, first_tip) = comparable;
+        storage.asynchronous_available(first_tip, second_tip) = available;
+        storage.asynchronous_available(second_tip, first_tip) = available;
+      }
       if (weighted) {
         storage.synchronous_available_total += comparable;
         storage.asynchronous_available_total += available;
@@ -3010,7 +3022,8 @@ Rcpp::List compact_summaries_to_r(
     const ComponentDefinitions& definitions,
     const Rcpp::DataFrame& component_metadata,
     bool tree_is_ultrametric,
-    const Rcpp::NumericVector& tip_history_times) {
+    const Rcpp::NumericVector& tip_history_times,
+    bool include_availability_matrices) {
   const bool weighted = !tree_is_ultrametric;
   Rcpp::List asynchronous(storage.asynchronous_totals.size());
   Rcpp::CharacterVector view_names(storage.asynchronous_totals.size());
@@ -3028,6 +3041,17 @@ Rcpp::List compact_summaries_to_r(
     );
   }
   asynchronous.attr("names") = view_names;
+  Rcpp::List weighting = Rcpp::List::create(
+    Rcpp::Named("tree_is_ultrametric") = tree_is_ultrametric,
+    Rcpp::Named("available_similarity_weighting_applied") = weighted,
+    Rcpp::Named("tip_history_times") = tip_history_times
+  );
+  if (include_availability_matrices) {
+    weighting["synchronous_available_similarity_by_pair"] =
+      storage.synchronous_available;
+    weighting["asynchronous_available_similarity_by_pair"] =
+      storage.asynchronous_available;
+  }
   return Rcpp::List::create(
     Rcpp::Named("sync") = compact_summary_family_to_r(
       storage.synchronous_totals,
@@ -3037,15 +3061,7 @@ Rcpp::List compact_summaries_to_r(
     ),
     Rcpp::Named("async") = asynchronous,
     Rcpp::Named("components") = component_metadata,
-    Rcpp::Named("weighting") = Rcpp::List::create(
-      Rcpp::Named("tree_is_ultrametric") = tree_is_ultrametric,
-      Rcpp::Named("available_similarity_weighting_applied") = weighted,
-      Rcpp::Named("tip_history_times") = tip_history_times,
-      Rcpp::Named("synchronous_available_similarity_by_pair") =
-        storage.synchronous_available,
-      Rcpp::Named("asynchronous_available_similarity_by_pair") =
-        storage.asynchronous_available
-    )
+    Rcpp::Named("weighting") = weighting
   );
 }
 
@@ -3538,6 +3554,7 @@ Rcpp::List scenario_mats_v3_calculate_cpp(
     Rcpp::IntegerVector maximum_transition_counts,
     std::string async_metric,
     bool record_complete_output,
+    bool record_matrix_output,
     double time_tolerance) {
   const std::vector<int> requested_maximum_transition_counts =
     Rcpp::as<std::vector<int> >(maximum_transition_counts);
@@ -3559,28 +3576,36 @@ Rcpp::List scenario_mats_v3_calculate_cpp(
       prepared_scenario_data,
       component_definitions,
       compact,
-      async_metric
-    );
-    const Rcpp::List matrices = compact_matrix_storage_to_r(
-      storage,
-      prepared_scenario_data,
-      component_definitions
+      async_metric,
+      record_matrix_output
     );
     const Rcpp::NumericVector tip_history_times =
       tip_history_times_to_r(prepared_scenario_data, compact);
     const bool tree_is_ultrametric =
       Rcpp::max(tip_history_times) - Rcpp::min(tip_history_times) <=
         prepared_scenario_data.time_tolerance;
+    const Rcpp::List summaries = compact_summaries_to_r(
+      storage,
+      prepared_scenario_data,
+      component_definitions,
+      component_metadata,
+      tree_is_ultrametric,
+      tip_history_times,
+      record_matrix_output
+    );
+    if (!record_matrix_output) {
+      return Rcpp::List::create(
+        Rcpp::Named("summaries") = summaries
+      );
+    }
+    const Rcpp::List matrices = compact_matrix_storage_to_r(
+      storage,
+      prepared_scenario_data,
+      component_definitions
+    );
     return Rcpp::List::create(
       Rcpp::Named("matrices") = matrices,
-      Rcpp::Named("summaries") = compact_summaries_to_r(
-        storage,
-        prepared_scenario_data,
-        component_definitions,
-        component_metadata,
-        tree_is_ultrametric,
-        tip_history_times
-      )
+      Rcpp::Named("summaries") = summaries
     );
   }
 
@@ -3688,4 +3713,3 @@ Rcpp::List scenario_mats_v3_calculate_cpp(
     )
   );
 }
-

@@ -69,7 +69,7 @@ pst_v35_cpp_transition_size_maps <- function(state_tree, path_tree, cumulative_l
     .Call(`_TrajectoryTrees_pst_v35_cpp_transition_size_maps`, state_tree, path_tree, cumulative_lineage_trans, cumulative_scenario_trans, path_labels_by_id, terminal_lineage_counts_by_id, terminal_scenario_counts_by_id, terminal_trajectory_group_id_by_tip)
 }
 
-scenario_mats_v3_calculate_cpp <- function(trajectory_obj, maximum_transition_counts, async_metric, record_complete_output, time_tolerance) {
-    .Call(`_TrajectoryTrees_scenario_mats_v3_calculate_cpp`, trajectory_obj, maximum_transition_counts, async_metric, record_complete_output, time_tolerance)
+scenario_mats_v3_calculate_cpp <- function(trajectory_obj, maximum_transition_counts, async_metric, record_complete_output, record_matrix_output, time_tolerance) {
+    .Call(`_TrajectoryTrees_scenario_mats_v3_calculate_cpp`, trajectory_obj, maximum_transition_counts, async_metric, record_complete_output, record_matrix_output, time_tolerance)
 }
 

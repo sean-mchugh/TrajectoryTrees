@@ -217,10 +217,29 @@
         values[, "convergent"] + parallel
     )
   }
-  all_states <- function(state_values, divergent) {
+  all_states <- function(state_values, divergent, view) {
     values <- c(colSums(state_values), divergent = divergent)
-    if (abs(sum(values) - 1) > tolerance) {
-      stop("an all-states similarity vector does not close to one", call. = FALSE)
+    total <- sum(values)
+    if (abs(total - 1) > tolerance) {
+      condition <- structure(
+        list(
+          message = paste0(
+            "the ", view, " all-states similarity vector closes to ",
+            format(total, digits = 17), " rather than one"
+          ),
+          call = NULL,
+          view = view,
+          values = values,
+          total = total,
+          tolerance = tolerance
+        ),
+        class = c(
+          "trajectorytrees_similarity_closure_error",
+          "error",
+          "condition"
+        )
+      )
+      stop(condition)
     }
     values
   }
@@ -237,11 +256,13 @@
 
   synchronous_all <- all_states(
     synchronous_state,
-    component_value("sync", "divergent")
+    component_value("sync", "divergent"),
+    "sync"
   )
   asynchronous_all <- all_states(
     asynchronous_state,
-    component_value("state_only", "divergent")
+    component_value("state_only", "divergent"),
+    "async_combined"
   )
   result$summaries$similarity_vectors <- list(
     available = TRUE,
@@ -272,6 +293,7 @@
 }
 
 .scenario_mats_v3_add_depth_reports <- function(result) {
+  if (is.null(result$matrices)) return(result)
   metadata <- result$summaries$components
   asynchronous_weights <- if (
       isTRUE(result$summaries$weighting$
@@ -364,8 +386,8 @@
 #' @param maximum_transition_counts Unique nonnegative whole-number path depths,
 #'   including zero for the state-only view.
 #' @param async_metric Either `"bhattacharyya"` or `"minimum"`.
-#' @param return_mode Return only matrices and summaries by default, or all
-#'   calculation details with `"complete"`.
+#' @param return_mode Return matrices and summaries by default, summaries only
+#'   with `"summaries_only"`, or all calculation details with `"complete"`.
 #' @param time_tolerance Positive numeric resolution used for time comparisons.
 #'   When omitted, a version-neutral tolerance stored on the trajectory is used;
 #'   legacy PST attributes remain readable for saved-object compatibility.
@@ -375,7 +397,7 @@ trajectory_similarity <- function(
     trajectory_obj,
     maximum_transition_counts = 0L,
     async_metric = c("bhattacharyya", "minimum"),
-    return_mode = c("matrices_and_summaries", "complete"),
+    return_mode = c("matrices_and_summaries", "summaries_only", "complete"),
     time_tolerance = NULL) {
   if (missing(trajectory_obj)) {
     stop("argument \"trajectory_obj\" is missing", call. = FALSE)
@@ -433,9 +455,12 @@ trajectory_similarity <- function(
     return_mode <- "matrices_and_summaries"
   } else if (!is.character(return_mode) || length(return_mode) != 1L ||
              is.na(return_mode) ||
-             !return_mode %in% c("matrices_and_summaries", "complete")) {
+             !return_mode %in% c("matrices_and_summaries", "summaries_only", "complete")) {
     stop(
-      "return_mode must be either 'matrices_and_summaries' or 'complete'",
+      paste(
+        "return_mode must be either 'matrices_and_summaries',",
+        "'summaries_only', or 'complete'"
+      ),
       call. = FALSE
     )
   }
@@ -479,6 +504,7 @@ trajectory_similarity <- function(
     maximum_transition_counts,
     async_metric,
     identical(return_mode, "complete"),
+    !identical(return_mode, "summaries_only"),
     as.numeric(time_tolerance)
   )
   result <- .scenario_mats_v3_add_depth_reports(result)
@@ -487,4 +513,3 @@ trajectory_similarity <- function(
     state_levels = colnames(trajectory_obj$phylo$mapped.edge)
   )
 }
-

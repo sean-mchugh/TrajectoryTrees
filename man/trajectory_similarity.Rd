@@ -8,7 +8,7 @@ trajectory_similarity(
   trajectory_obj,
   maximum_transition_counts = 0L,
   async_metric = c("bhattacharyya", "minimum"),
-  return_mode = c("matrices_and_summaries", "complete"),
+  return_mode = c("matrices_and_summaries", "summaries_only", "complete"),
   time_tolerance = NULL
 )
 }
@@ -21,8 +21,9 @@ including zero for the state-only view.}
 
 \item{async_metric}{Either \code{"bhattacharyya"} or \code{"minimum"}.}
 
-\item{return_mode}{Return only matrices and summaries by default, or all
-calculation details with \code{"complete"}.}
+\item{return_mode}{Return matrices and summaries by default, summaries only
+with \code{"summaries_only"}, or all calculation details with
+\code{"complete"}.}
 
 \item{time_tolerance}{Positive numeric resolution used for time comparisons.
 When omitted, a version-neutral tolerance stored on the trajectory is used;
