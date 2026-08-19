@@ -15,6 +15,8 @@
 
 namespace {
 
+const double kSummaryAccumulationScale = 1e4;
+
 struct TextValue {
   bool is_missing;
   std::string value;
@@ -202,6 +204,7 @@ struct CompactMatrixStorage {
   Rcpp::NumericMatrix asynchronous_available;
   double synchronous_available_total;
   double asynchronous_available_total;
+  double summary_accumulation_scale;
 };
 
 std::string translated_utf8(const Rcpp::String& value) {
@@ -2760,6 +2763,8 @@ CompactMatrixStorage initialize_compact_matrix_storage(
     const ComponentDefinitions& definitions,
     bool record_matrix_output) {
   CompactMatrixStorage storage;
+  storage.summary_accumulation_scale = record_matrix_output ?
+    1.0 : kSummaryAccumulationScale;
   storage.synchronous_totals.assign(
     definitions.synchronous_component_names.size(), 0.0
   );
@@ -2817,14 +2822,16 @@ void write_compact_pair(
     const std::vector<double>& values,
     int first_tip,
     int second_tip,
-    double weight) {
+    double weight,
+    double accumulation_scale) {
   for (std::size_t component = 0; component < values.size(); ++component) {
     if (values[component] == 0.0) continue;
     if (!matrices.empty()) {
       matrices[component](first_tip, second_tip) = values[component];
       matrices[component](second_tip, first_tip) = values[component];
     }
-    totals[component] += values[component] * weight;
+    totals[component] +=
+      values[component] * accumulation_scale * weight;
   }
 }
 
@@ -2925,7 +2932,8 @@ CompactMatrixStorage calculate_compact_matrix_storage(
         synchronous,
         first_tip,
         second_tip,
-        weighted ? comparable : 1.0
+        weighted ? comparable : 1.0,
+        storage.summary_accumulation_scale
       );
       for (std::size_t depth = 0; depth < asynchronous.size(); ++depth) {
         write_compact_pair(
@@ -2934,7 +2942,8 @@ CompactMatrixStorage calculate_compact_matrix_storage(
           asynchronous[depth],
           first_tip,
           second_tip,
-          weighted ? available : 1.0
+          weighted ? available : 1.0,
+          storage.summary_accumulation_scale
         );
       }
 
@@ -2999,8 +3008,14 @@ Rcpp::List compact_summary_family_to_r(
     const std::vector<double>& totals,
     const std::vector<std::string>& names,
     bool weighted,
-    double available_total) {
-  Rcpp::NumericVector total_values = Rcpp::wrap(totals);
+    double available_total,
+    double accumulation_scale) {
+  Rcpp::NumericVector total_values(totals.size());
+  for (std::size_t component = 0;
+       component < totals.size();
+       ++component) {
+    total_values[component] = totals[component] / accumulation_scale;
+  }
   total_values.attr("names") = utf8_character_vector(names);
   const double total = Rcpp::sum(total_values);
   Rcpp::NumericVector proportions(total_values.size());
@@ -3034,7 +3049,8 @@ Rcpp::List compact_summaries_to_r(
       storage.asynchronous_totals[depth],
       definitions.asynchronous_component_names[depth],
       weighted,
-      storage.asynchronous_available_total
+      storage.asynchronous_available_total,
+      storage.summary_accumulation_scale
     );
     view_names[depth] = transition_view_name(
       data.maximum_transition_counts[depth]
@@ -3051,13 +3067,17 @@ Rcpp::List compact_summaries_to_r(
       storage.synchronous_available;
     weighting["asynchronous_available_similarity_by_pair"] =
       storage.asynchronous_available;
+  } else {
+    weighting["summary_accumulation_scale"] =
+      storage.summary_accumulation_scale;
   }
   return Rcpp::List::create(
     Rcpp::Named("sync") = compact_summary_family_to_r(
       storage.synchronous_totals,
       definitions.synchronous_component_names,
       weighted,
-      storage.synchronous_available_total
+      storage.synchronous_available_total,
+      storage.summary_accumulation_scale
     ),
     Rcpp::Named("async") = asynchronous,
     Rcpp::Named("components") = component_metadata,
