@@ -391,6 +391,8 @@
 #' @param time_tolerance Positive numeric resolution used for time comparisons.
 #'   When omitted, a version-neutral tolerance stored on the trajectory is used;
 #'   legacy PST attributes remain readable for saved-object compatibility.
+#' @param similarity_tolerance Positive numeric tolerance used when validating
+#'   closure of the derived similarity vectors.
 #' @return A ScenarioMats similarity result.
 #' @export
 trajectory_similarity <- function(
@@ -398,7 +400,8 @@ trajectory_similarity <- function(
     maximum_transition_counts = 0L,
     async_metric = c("bhattacharyya", "minimum"),
     return_mode = c("matrices_and_summaries", "summaries_only", "complete"),
-    time_tolerance = NULL) {
+    time_tolerance = NULL,
+    similarity_tolerance = 1e-8) {
   if (missing(trajectory_obj)) {
     stop("argument \"trajectory_obj\" is missing", call. = FALSE)
   }
@@ -497,6 +500,14 @@ trajectory_similarity <- function(
       call. = FALSE
     )
   }
+  if (!is.numeric(similarity_tolerance) ||
+      length(similarity_tolerance) != 1L ||
+      !is.finite(similarity_tolerance) || similarity_tolerance <= 0) {
+    stop(
+      "similarity_tolerance must be one finite positive number",
+      call. = FALSE
+    )
+  }
 
   scenario_mats_v3_load_cpp()
   result <- scenario_mats_v3_calculate_cpp(
@@ -510,6 +521,7 @@ trajectory_similarity <- function(
   result <- .scenario_mats_v3_add_depth_reports(result)
   .scenario_mats_v3_add_similarity_vectors(
     result,
-    state_levels = colnames(trajectory_obj$phylo$mapped.edge)
+    state_levels = colnames(trajectory_obj$phylo$mapped.edge),
+    tolerance = similarity_tolerance
   )
 }
