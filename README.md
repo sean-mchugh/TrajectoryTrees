@@ -163,25 +163,6 @@ Rscript tools/validation/run_validation.R \
   --output=tools/validation/output/known_true
 ```
 
-## Validation and the historical reference implementation
-
-The production implementation is private and all exported functions use
-version-neutral names. V34 is retained only under
-`tools/validation/reference/v34/` as a historical comparison oracle. It is not
-compiled into the package, loaded by normal use, exported, or called by any
-public function.
-
-Optional hidden parity:
-
-```sh
-Rscript tools/validation/run_validation.R \
-  --scopes=corpus,anolis-empirical,anolis-simulated \
-  --compare-v34=true \
-  --output=tools/validation/output/full_parity
-```
-
-See `tools/validation/README.md` for every filter. Compact historical release
-summaries are retained under `tools/validation/historical/`.
 
 ## Repository layout
 
